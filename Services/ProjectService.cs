@@ -231,8 +231,13 @@ public class ProjectService : IProjectService
 
 
     // users
-    public async Task<User?> Login(string email, string password)
+    public async Task<User?> Login(string? email, string? password)
     {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            return null;
+        }
+        
         var users = await GetUsersAsync();
         return users?.FirstOrDefault(t => t.Email == email && t.Password == password);
     }

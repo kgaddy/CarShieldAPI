@@ -135,14 +135,19 @@ public class ProjectController : ControllerBase
 
     // Users
 
-    [HttpGet]
+    [HttpPost]
     [Route("~/api/Project/Login")]
-    public async Task<ActionResult<CarShieldAPI.Models.User>> Login([FromBody] CarShieldAPI.Models.LoginRequset request)
+    public async Task<ActionResult<CarShieldAPI.Models.User>> Login([FromBody] CarShieldAPI.Models.LoginRequset? request)
     {
+        if (request == null)
+        {
+            return BadRequest("Request body is required.");
+        }
+        
         var user = await _projectService.Login(request.Email, request.Password);
         if (user == null)
         {
-            return NotFound($"Invalid email or password.");
+            return NotFound("Invalid email or password.");
         }
         return Ok(user);
     }

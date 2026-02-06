@@ -16,6 +16,6 @@ public interface IProjectService
     Task<List<Models.ProjectTask>> GetProjectTasksAsync(string projectId);
 
     // Users
-    Task<Models.User> Login(string email, string password);
+    Task<Models.User?> Login(string? email, string? password);
     Task<List<Models.User>> GetUsersAsync();
 }
