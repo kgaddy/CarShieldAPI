@@ -68,7 +68,7 @@ Authenticates a user with email and password.
 - `400 Bad Request` - Request body is missing
 - `404 Not Found` - Invalid email or password
 
-**Security Note:** ⚠️ The current implementation returns the user password in the response and stores passwords in plain text. This is for development purposes only. For production, implement proper password hashing (BCrypt/Argon2) and use JWT tokens for authentication instead of returning user credentials.
+**TODO:** ⚠️ The current implementation returns the user password in the response and stores passwords in plain text. This is for development purposes only. For production, implement proper password hashing (BCrypt/Argon2) and use JWT tokens for authentication instead of returning user credentials.
 
 ---
 
@@ -404,64 +404,20 @@ The API will start and be available at `https://localhost:5001` (or the port spe
 
 ## Deployment
 
-### Building for Linux (Self-Contained)
+For complete deployment instructions, including building, deploying to Linux servers, and setting up as a systemd service, see the **[Deployment Guide](docs/DEPLOYMENT.md)**.
 
-To deploy as a standalone service on Linux that doesn't require .NET to be installed:
+### Quick Build Command
 
-**Single-file deployment (recommended):**
 ```bash
-dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
+dotnet publish -c Release -r linux-x64 --self-contained -o ./publish
 ```
 
-**For ARM-based servers:**
-```bash
-dotnet publish -c Release -r linux-arm64 --self-contained true -p:PublishSingleFile=true -o ./publish
-```
+### Key Points
 
-### Setting Up as a Linux Service
+- **Self-contained deployment** - includes .NET runtime, no need to install .NET on server
+- **Target Framework** - .NET 10.0
+- **Default Port** - 5000 (configurable)
+- **Data Storage** - JSON files in `Data/` directory
+- **Service Management** - systemd on Linux
 
-1. **Copy files to the server:**
-```bash
-scp -r ./publish/* user@your-server:/opt/carshieldapi/
-```
-
-2. **Set permissions:**
-```bash
-sudo chown -R www-data:www-data /opt/carshieldapi
-sudo chmod +x /opt/carshieldapi/CarShieldAPI
-sudo chmod -R 750 /opt/carshieldapi/Data
-```
-
-3. **Create systemd service** (`/etc/systemd/system/carshieldapi.service`):
-```ini
-[Unit]
-Description=CarShield API Service
-After=network.target
-
-[Service]
-Type=notify
-WorkingDirectory=/opt/carshieldapi
-ExecStart=/opt/carshieldapi/CarShieldAPI
-Restart=always
-RestartSec=10
-User=www-data
-Environment=ASPNETCORE_ENVIRONMENT=Production
-Environment=ASPNETCORE_URLS=http://0.0.0.0:5000
-
-[Install]
-WantedBy=multi-user.target
-```
-
-4. **Enable and start the service:**
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable carshieldapi
-sudo systemctl start carshieldapi
-sudo systemctl status carshieldapi
-```
-
-### Notes
-- The self-contained build includes the .NET runtime - no need to install .NET on the server
-- Default port is 5000 (configurable via `ASPNETCORE_URLS` environment variable)
-- For production, configure HTTPS using a reverse proxy (nginx/Apache) or Kestrel certificates
-- Data files (`projects.json`, `users.json`) are stored in the `Data` directory - ensure proper write permissions
+For detailed instructions on deployment, troubleshooting, and service management, see **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
