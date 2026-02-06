@@ -14,4 +14,7 @@ public interface IProjectService
     Task<bool> UpdateProjectTaskAsync(string projectId, string taskId, Models.ProjectTask task);
     Task<bool> DeleteProjectTaskAsync(string projectId, string taskId);
     Task<List<Models.ProjectTask>> GetProjectTasksAsync(string projectId);
+
+    // Users
+    Task<Models.User> Login(string email, string password);
 }

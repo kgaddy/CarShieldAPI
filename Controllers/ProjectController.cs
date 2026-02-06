@@ -132,4 +132,18 @@ public class ProjectController : ControllerBase
         }
         return NoContent();
     }
+
+    // Users
+
+    [HttpGet]
+    [Route("~/api/Project/Login")]
+    public async Task<ActionResult<CarShieldAPI.Models.User>> Login([FromBody] CarShieldAPI.Models.LoginRequset request)
+    {
+        var user = await _projectService.Login(request.Email, request.Password);
+        if (user == null)
+        {
+            return NotFound($"Invalid email or password.");
+        }
+        return Ok(user);
+    }
 }

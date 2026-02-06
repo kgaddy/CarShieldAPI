@@ -6,6 +6,7 @@ namespace CarShieldAPI.Services;
 public class ProjectService : IProjectService
 {
     private readonly string _projectFilePath;
+    private readonly string _userFilePath;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -15,7 +16,7 @@ public class ProjectService : IProjectService
     public ProjectService(IWebHostEnvironment env)
     {
         _projectFilePath = Path.Combine(env.ContentRootPath, "Data", "projects.json");
-        
+        _userFilePath = Path.Combine(env.ContentRootPath, "Data", "users.json");
         // Ensure Data directory exists
         var directory = Path.GetDirectoryName(_projectFilePath);
         if (!Directory.Exists(directory))
@@ -41,6 +42,25 @@ public class ProjectService : IProjectService
         
         var data = JsonSerializer.Deserialize<ProjectData>(json, JsonOptions);
         return data?.Projects ?? new List<Project>();
+    }
+
+    public async Task<List<User>> GetUsersAsync()
+    {
+        if (!File.Exists(_userFilePath))
+        {
+            return new List<User>();
+        }
+
+        var json = await File.ReadAllTextAsync(_userFilePath);
+        
+        // Handle empty file
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new List<User>();
+        }
+        
+        var data = JsonSerializer.Deserialize<UserData>(json, JsonOptions);
+        return data?.Users ?? new List<User>();
     }
 
     public async Task<Project?> GetProjectByIdAsync(string id)
@@ -210,6 +230,12 @@ public class ProjectService : IProjectService
     }
 
 
+    // users
+    public async Task<User?> Login(string email, string password)
+    {
+        var users = await GetUsersAsync();
+        return users?.FirstOrDefault(t => t.Email == email && t.Password == password);
+    }
 
 
 }
