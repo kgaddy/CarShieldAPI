@@ -25,7 +25,7 @@ Retrieves all projects.
     "id": "proj-123",
     "description": "Vehicle inspection system upgrade",
     "status": 1,
-    "createdBy": "john.doe@carshield.com",
+    "createdBy": "nb699d54-u6a3-427d-bd94-c5e69a236wgv",
     "createdOn": "2026-02-05T10:30:00Z",
     "projectTasks": []
   }
@@ -54,7 +54,7 @@ Retrieves a specific project by ID.
   "id": "proj-123",
   "description": "Vehicle inspection system upgrade",
   "status": 1,
-  "createdBy": "john.doe@carshield.com",
+  "createdBy": "nb699d54-u6a3-427d-bd94-c5e69a236wgv",
   "createdOn": "2026-02-05T10:30:00Z",
   "projectTasks": [
     {
@@ -81,7 +81,7 @@ Creates a new project.
 {
   "description": "Vehicle inspection system upgrade",
   "status": 0,
-  "createdBy": "john.doe@carshield.com",
+  "createdBy": "nb699d54-u6a3-427d-bd94-c5e69a236wgv",
   "createdOn": "2026-02-05T10:30:00Z",
   "projectTasks": []
 }
@@ -93,7 +93,7 @@ Creates a new project.
   "id": "proj-123",
   "description": "Vehicle inspection system upgrade",
   "status": 0,
-  "createdBy": "john.doe@carshield.com",
+  "createdBy": "nb699d54-u6a3-427d-bd94-c5e69a236wgv",
   "createdOn": "2026-02-05T10:30:00Z",
   "projectTasks": []
 }
@@ -115,7 +115,7 @@ Updates an existing project.
 {
   "description": "Vehicle inspection system upgrade - Phase 2",
   "status": 1,
-  "createdBy": "john.doe@carshield.com",
+  "createdBy": "nb699d54-u6a3-427d-bd94-c5e69a236wgv",
   "createdOn": "2026-02-05T10:30:00Z",
   "projectTasks": []
 }
