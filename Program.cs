@@ -23,4 +23,19 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+app.UseCors("AllowAngularApp");
+
 app.Run();
+
+
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAngularApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:4200", "https://yourproductiondomain.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // if using cookies/auth
+    });
+});
