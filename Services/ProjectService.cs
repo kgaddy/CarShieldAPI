@@ -160,8 +160,12 @@ public class ProjectService : IProjectService
             return false;
         }
 
-        // Update properties
+        // Update non- changing properties
+        project.CreatedBy = existingProject.CreatedBy;
+        project.CreatedOn = existingProject.CreatedOn;
+
         projects.Remove(existingProject);
+
         project.Id = id; // Ensure ID doesn't change
         projects.Add(project);
 
