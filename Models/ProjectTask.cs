@@ -15,4 +15,6 @@ public sealed class ProjectTask
     public string? Description { get; set; }
     public required TaskStatus Status { get; set; }
     public string? AssignedTo { get; set; }
+
+     public string? AssignedToDisplayName { get; set; }
 }

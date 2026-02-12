@@ -9,5 +9,21 @@
       "Email": "john@test.com",
       "Password": "john123",
       "Role": "user"
+    },
+      {
+      "Id": "zzx9d53q-u6a3-4234d-bd94-c5sa2a236wgv",
+      "FirstName": "Alex",
+      "LastName": "Thompson",
+      "Email": "alex@test.com",
+      "Password": "alex123",
+      "Role": "admin"
+    },
+      {
+      "Id": "kkj6d53q-u2x3-4234d-bd94-obzt2a236wgv",
+      "FirstName": "James",
+      "LastName": "Monroe",
+      "Email": "james@test.com",
+      "Password": "james123",
+      "Role": "user"
     }]
 }

@@ -17,12 +17,16 @@ public sealed class ProjectData
 public sealed class Project
 {
     public string? Id { get; set; }
+    public string? Name { get; set; }
     public string? Description { get; set; }
     public ProjectStatus Status { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime CreatedOn { get; set ; }
     public List<ProjectTask> ProjectTasks { get; set; } = new();
 
+    //Computed, not to be persisted
+    public string? CreatedByDisplayName { get; set; }
+    public double? PercentComplete {get; set; }
 
 
 }

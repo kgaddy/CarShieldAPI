@@ -85,8 +85,6 @@ sudo journalctl -u carshieldapi --no-pager
 
 ### Test API Endpoints
 ```bash
-# Weather endpoint
-curl http://localhost:5000/WeatherForecast
 
 # Get all projects
 curl http://localhost:5000/api/Project/GetProjects

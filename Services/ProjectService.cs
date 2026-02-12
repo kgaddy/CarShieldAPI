@@ -33,15 +33,65 @@ public class ProjectService : IProjectService
         }
 
         var json = await File.ReadAllTextAsync(_projectFilePath);
-        
+
         // Handle empty file
         if (string.IsNullOrWhiteSpace(json))
         {
             return new List<Project>();
         }
-        
+
         var data = JsonSerializer.Deserialize<ProjectData>(json, JsonOptions);
-        return data?.Projects ?? new List<Project>();
+        var projects = data?.Projects ?? new List<Project>();
+
+        await PopulateCreatedByDisplayNames(projects);
+        await PopulatePercentDone(projects);
+        return projects;
+    }
+
+
+    public async Task<List<ProjectTask>> GetTasksByUserAsync(string assignedToId)
+    {
+        // Get all projects
+        var projects = await GetProjectsAsync();
+
+        // Flatten all tasks from all projects and filter by assignedToId
+        var userTasks = projects
+            .SelectMany(p => p.ProjectTasks)
+            .Where(t => t.AssignedTo == assignedToId)
+            .ToList();
+
+        // Populate display names for the filtered tasks
+        await PopulateAssignedToDisplayNames(userTasks);
+
+        return userTasks;
+
+    }
+
+    public async Task<List<Project>> GetProjectsByUserAsync(string createdById)
+    {
+        if (!File.Exists(_projectFilePath))
+        {
+            return new List<Project>();
+        }
+
+        var json = await File.ReadAllTextAsync(_projectFilePath);
+
+        // Handle empty file
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return new List<Project>();
+        }
+
+        var data = JsonSerializer.Deserialize<ProjectData>(json, JsonOptions);
+        var projects = data?.Projects ?? new List<Project>();
+
+        await PopulateCreatedByDisplayNames(projects);
+        await PopulatePercentDone(projects);
+
+        var usersListOfProjects = projects.Where(p => p.CreatedBy.Contains(createdById)).ToList();
+
+
+        return usersListOfProjects;
     }
 
     public async Task<List<User>> GetUsersAsync()
@@ -52,13 +102,13 @@ public class ProjectService : IProjectService
         }
 
         var json = await File.ReadAllTextAsync(_userFilePath);
-        
+
         // Handle empty file
         if (string.IsNullOrWhiteSpace(json))
         {
             return new List<User>();
         }
-        
+
         var data = JsonSerializer.Deserialize<UserData>(json, JsonOptions);
         return data?.Users ?? new List<User>();
     }
@@ -71,14 +121,14 @@ public class ProjectService : IProjectService
 
     public async Task<Project> SaveProjectAsync(Project project)
     {
-      
+
         if (string.IsNullOrWhiteSpace(project.Id))
         {
             project.Id = Guid.NewGuid().ToString();
         }
-    
+
         var projects = await GetProjectsAsync();
-        
+
         // Check if project already exists
         var existingProject = projects.FirstOrDefault(p => p.Id == project.Id);
         if (existingProject != null)
@@ -88,10 +138,15 @@ public class ProjectService : IProjectService
 
         // Add new project
         projects.Add(project);
-        
+
         // Save to file
         await SaveProjectsAsync(projects);
-        
+
+        // Populate display name before returning
+        await PopulateCreatedByDisplayNames(new List<Project> { project });
+        // calculate percent complete
+        await PopulatePercentDone(new List<Project> { project });
+
         return project;
     }
 
@@ -99,7 +154,7 @@ public class ProjectService : IProjectService
     {
         var projects = await GetProjectsAsync();
         var existingProject = projects.FirstOrDefault(p => p.Id == id);
-        
+
         if (existingProject == null)
         {
             return false;
@@ -109,7 +164,7 @@ public class ProjectService : IProjectService
         projects.Remove(existingProject);
         project.Id = id; // Ensure ID doesn't change
         projects.Add(project);
-        
+
         await SaveProjectsAsync(projects);
         return true;
     }
@@ -118,7 +173,7 @@ public class ProjectService : IProjectService
     {
         var projects = await GetProjectsAsync();
         var project = projects.FirstOrDefault(p => p.Id == id);
-        
+
         if (project == null)
         {
             return false;
@@ -131,6 +186,19 @@ public class ProjectService : IProjectService
 
     private async Task SaveProjectsAsync(List<Project> projects)
     {
+        // Clear display names before saving to keep JSON normalized. Not needed in a real world situation.
+        foreach (var project in projects)
+        {
+            project.CreatedByDisplayName = null;
+            project.PercentComplete = null;
+
+            // Also clear task display names
+            foreach (var task in project.ProjectTasks)
+            {
+                task.AssignedToDisplayName = null;
+            }
+        }
+
         var projectData = new ProjectData
         {
             ExportDate = DateTimeOffset.UtcNow,
@@ -140,64 +208,120 @@ public class ProjectService : IProjectService
 
         var json = JsonSerializer.Serialize(projectData, JsonOptions);
         await File.WriteAllTextAsync(_projectFilePath, json);
-       
+
+    }
+    private async Task PopulatePercentDone(List<Project> projects)
+    {
+        if (projects == null || projects.Count == 0) return;
+
+        foreach (var project in projects)
+        {
+            var taskCount = project.ProjectTasks.Count;
+            var completedTasks = project.ProjectTasks.Count(t => t.Status == CarShieldAPI.Models.TaskStatus.Done);
+            if (completedTasks == 0 || taskCount == 0)
+            {
+                project.PercentComplete = 0;
+            }
+            else
+            {
+                Console.WriteLine("Task Count:" + taskCount);
+                Console.WriteLine("Completed Count:" + completedTasks);
+                project.PercentComplete = completedTasks / taskCount * 100;
+            }
+
+        }
+    }
+    private async Task PopulateCreatedByDisplayNames(List<Project> projects)
+    {
+        if (projects == null || !projects.Any()) return;
+        var users = await GetUsersAsync();
+        foreach (var project in projects)
+        {
+            var user = users.FirstOrDefault(u => u.Id == project.CreatedBy);
+            project.CreatedByDisplayName = user != null ? $"{user.FirstName} {user.LastName}" : "Unknown User";
+
+
+            if (project.ProjectTasks != null)
+            {
+                await PopulateAssignedToDisplayNames(project.ProjectTasks);
+            }
+
+        }
     }
 
+
+
     /// Tasks
+
+    private async Task PopulateAssignedToDisplayNames(List<ProjectTask> projectTasks)
+    {
+        if (projectTasks == null || !projectTasks.Any()) return;
+        var users = await GetUsersAsync();
+        foreach (var projectTask in projectTasks)
+        {
+            var user = users.FirstOrDefault(u => u.Id == projectTask.AssignedTo);
+            projectTask.AssignedToDisplayName = user != null ? $"{user.FirstName} {user.LastName}" : "Not Assigned";
+        }
+    }
     public async Task<ProjectTask> AddTaskToProjectAsync(string projectId, ProjectTask task)
-{
-    var projects = await GetProjectsAsync();
-    var project = projects.FirstOrDefault(p => p.Id == projectId);
-    
-    if (project == null)
     {
-        throw new InvalidOperationException($"Project with ID '{projectId}' not found.");
+        var projects = await GetProjectsAsync();
+        var project = projects.FirstOrDefault(p => p.Id == projectId);
+
+        if (project == null)
+        {
+            throw new InvalidOperationException($"Project with ID '{projectId}' not found.");
+        }
+
+        // Generate task ID if not provided
+        if (string.IsNullOrWhiteSpace(task.Id))
+        {
+            task.Id = Guid.NewGuid().ToString();
+        }
+
+        // Check if task ID already exists
+        if (project.ProjectTasks.Any(t => t.Id == task.Id))
+        {
+            throw new InvalidOperationException($"Task with ID '{task.Id}' already exists.");
+        }
+
+        project.ProjectTasks.Add(task);
+        await SaveProjectsAsync(projects);
+        await PopulateAssignedToDisplayNames([task]);
+        return task;
     }
-    
-    // Generate task ID if not provided
-    if (string.IsNullOrWhiteSpace(task.Id))
-    {
-        task.Id = Guid.NewGuid().ToString();
-    }
-    
-    // Check if task ID already exists
-    if (project.ProjectTasks.Any(t => t.Id == task.Id))
-    {
-        throw new InvalidOperationException($"Task with ID '{task.Id}' already exists.");
-    }
-    
-    project.ProjectTasks.Add(task);
-    await SaveProjectsAsync(projects);
-    
-    return task;
-}
 
     public async Task<ProjectTask?> GetProjectTaskAsync(string projectId, string taskId)
     {
         var project = await GetProjectByIdAsync(projectId);
-        return project?.ProjectTasks.FirstOrDefault(t => t.Id == taskId);
+        var projectTask = project?.ProjectTasks.FirstOrDefault(t => t.Id == taskId);
+        if (projectTask != null)
+        {
+            await PopulateAssignedToDisplayNames([projectTask]);
+        }
+        return projectTask;
     }
 
     public async Task<bool> UpdateProjectTaskAsync(string projectId, string taskId, ProjectTask task)
     {
         var projects = await GetProjectsAsync();
         var project = projects.FirstOrDefault(p => p.Id == projectId);
-        
+
         if (project == null)
         {
             return false;
         }
-        
+
         var existingTask = project.ProjectTasks.FirstOrDefault(t => t.Id == taskId);
         if (existingTask == null)
         {
             return false;
         }
-        
+
         project.ProjectTasks.Remove(existingTask);
         task.Id = taskId; // Ensure ID doesn't change
         project.ProjectTasks.Add(task);
-        
+
         await SaveProjectsAsync(projects);
         return true;
     }
@@ -206,18 +330,18 @@ public class ProjectService : IProjectService
     {
         var projects = await GetProjectsAsync();
         var project = projects.FirstOrDefault(p => p.Id == projectId);
-        
+
         if (project == null)
         {
             return false;
         }
-        
+
         var task = project.ProjectTasks.FirstOrDefault(t => t.Id == taskId);
         if (task == null)
         {
             return false;
         }
-        
+
         project.ProjectTasks.Remove(task);
         await SaveProjectsAsync(projects);
         return true;
@@ -226,7 +350,13 @@ public class ProjectService : IProjectService
     public async Task<List<ProjectTask>> GetProjectTasksAsync(string projectId)
     {
         var project = await GetProjectByIdAsync(projectId);
-        return project?.ProjectTasks ?? new List<ProjectTask>();
+        var projectTasks = project?.ProjectTasks ?? new List<ProjectTask>();
+        if (projectTasks != null)
+        {
+            await PopulateAssignedToDisplayNames(projectTasks);
+        }
+
+        return projectTasks;
     }
 
 
@@ -237,7 +367,7 @@ public class ProjectService : IProjectService
         {
             return null;
         }
-        
+
         var users = await GetUsersAsync();
         return users?.FirstOrDefault(t => t.Email == email && t.Password == password);
     }

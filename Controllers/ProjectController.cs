@@ -67,7 +67,32 @@ public class ProjectController : ControllerBase
         return NoContent();
     }
 
+    //GetProjectsByUserAsync
+    [HttpGet]
+    [Route("~/api/Projects/UserProjects/{userId}")]
+    public async Task<ActionResult<IEnumerable<CarShieldAPI.Models.Project>>> UserProjects(string userId)
+    {
+        var tasks = await _projectService.GetProjectsByUserAsync(userId);
+        if (tasks == null)
+        {
+            return NotFound($"Project with user '{userId}' not found.");
+        }
+        return Ok(tasks);
+    }
+
     // Task Endpoints
+
+    [HttpGet]
+    [Route("~/api/Projects/UserTasks/{userId}")]
+    public async Task<ActionResult<IEnumerable<CarShieldAPI.Models.ProjectTask>>> UserTasks(string userId)
+    {
+        var tasks = await _projectService.GetTasksByUserAsync(userId);
+        if (tasks == null)
+        {
+            return NotFound($"Project with user '{userId}' not found.");
+        }
+        return Ok(tasks);
+    }
 
     [HttpGet]
     [Route("~/api/Project/{projectId}/tasks")]
@@ -80,6 +105,7 @@ public class ProjectController : ControllerBase
         }
         return Ok(tasks);
     }
+
 
     [HttpGet]
     [Route("~/api/Project/{projectId}/tasks/{taskId}")]
@@ -100,7 +126,7 @@ public class ProjectController : ControllerBase
         try
         {
             var savedTask = await _projectService.AddTaskToProjectAsync(projectId, task);
-            return CreatedAtAction(nameof(GetProjectTask), 
+            return CreatedAtAction(nameof(GetProjectTask),
                 new { projectId = projectId, taskId = savedTask.Id }, savedTask);
         }
         catch (InvalidOperationException ex)
@@ -143,7 +169,7 @@ public class ProjectController : ControllerBase
         {
             return BadRequest("Request body is required.");
         }
-        
+
         var user = await _projectService.Login(request.Email, request.Password);
         if (user == null)
         {
