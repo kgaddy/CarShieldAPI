@@ -49,23 +49,6 @@ public class ProjectService : IProjectService
     }
 
 
-    public async Task<List<ProjectTask>> GetTasksByUserAsync(string assignedToId)
-    {
-        // Get all projects
-        var projects = await GetProjectsAsync();
-
-        // Flatten all tasks from all projects and filter by assignedToId
-        var userTasks = projects
-            .SelectMany(p => p.ProjectTasks)
-            .Where(t => t.AssignedTo == assignedToId)
-            .ToList();
-
-        // Populate display names for the filtered tasks
-        await PopulateAssignedToDisplayNames(userTasks);
-
-        return userTasks;
-
-    }
 
     public async Task<List<Project>> GetProjectsByUserAsync(string createdById)
     {
@@ -247,22 +230,45 @@ public class ProjectService : IProjectService
 
             if (project.ProjectTasks != null)
             {
-                await PopulateAssignedToDisplayNames(project.ProjectTasks);
+                await PopulateAssignedToDisplayNamesAndProjectId(project.ProjectTasks, project.Id);
             }
 
         }
     }
 
-
-
     /// Tasks
+    public async Task<List<ProjectTask>> GetTasksByUserAsync(string assignedToId)
+    {
+        // Get all projects
+        var projects = await GetProjectsAsync();
 
-    private async Task PopulateAssignedToDisplayNames(List<ProjectTask> projectTasks)
+        // Flatten all tasks from all projects and filter by assignedToId, add projectId to response
+        var userTasks = projects
+            .SelectMany(p => p.ProjectTasks.Select(t =>
+            {
+                t.ProjectId = p.Id;
+                return t;
+            }))
+            .Where(t => t.AssignedTo == assignedToId)
+            .ToList();
+
+        // Populate display names for the filtered tasks
+        await PopulateAssignedToDisplayNamesAndProjectId(userTasks, null);
+
+        return userTasks;
+
+    }
+    private async Task PopulateAssignedToDisplayNamesAndProjectId(List<ProjectTask> projectTasks, string? projectId)
     {
         if (projectTasks == null || !projectTasks.Any()) return;
         var users = await GetUsersAsync();
         foreach (var projectTask in projectTasks)
         {
+            if (projectId != null)
+            {
+                projectTask.ProjectId = projectId;
+            }
+
             var user = users.FirstOrDefault(u => u.Id == projectTask.AssignedTo);
             projectTask.AssignedToDisplayName = user != null ? $"{user.FirstName} {user.LastName}" : "Not Assigned";
         }
@@ -291,7 +297,7 @@ public class ProjectService : IProjectService
 
         project.ProjectTasks.Add(task);
         await SaveProjectsAsync(projects);
-        await PopulateAssignedToDisplayNames([task]);
+        await PopulateAssignedToDisplayNamesAndProjectId([task], projectId);
         return task;
     }
 
@@ -301,7 +307,8 @@ public class ProjectService : IProjectService
         var projectTask = project?.ProjectTasks.FirstOrDefault(t => t.Id == taskId);
         if (projectTask != null)
         {
-            await PopulateAssignedToDisplayNames([projectTask]);
+            projectTask.ProjectId = projectId;
+            await PopulateAssignedToDisplayNamesAndProjectId([projectTask], projectId);
         }
         return projectTask;
     }
@@ -324,6 +331,8 @@ public class ProjectService : IProjectService
 
         project.ProjectTasks.Remove(existingTask);
         task.Id = taskId; // Ensure ID doesn't change
+        task.ProjectId = projectId; //not allowed to change project, keep this
+
         project.ProjectTasks.Add(task);
 
         await SaveProjectsAsync(projects);
@@ -357,7 +366,7 @@ public class ProjectService : IProjectService
         var projectTasks = project?.ProjectTasks ?? new List<ProjectTask>();
         if (projectTasks != null)
         {
-            await PopulateAssignedToDisplayNames(projectTasks);
+            await PopulateAssignedToDisplayNamesAndProjectId(projectTasks, projectId);
         }
 
         return projectTasks;
